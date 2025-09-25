@@ -19,12 +19,33 @@
 
 $Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
 
+function Wait-WsaReady {
+    param(
+        [int]$TimeoutSeconds = 120
+    )
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if (Get-Process -Name "WsaClient" -ErrorAction SilentlyContinue) {
+            return $true
+        }
+        Start-Sleep -Seconds 1
+    }
+
+    return $false
+}
+
 function Finish {
     Clear-Host
     Start-Process "shell:AppsFolder\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe!SettingsApp"
-    Start-Process "wsa://com.topjohnwu.magisk"
-    Start-Process "wsa://com.android.vending"
     Start-Process "wsa://com.android.settings"
+
+    if (Wait-WsaReady) {
+        Start-Process "wsa://com.topjohnwu.magisk"
+        Start-Process "wsa://com.android.vending"
+    } else {
+        Write-Warning "Windows Subsystem for Android™ did not finish booting in time. Launch the Play Store manually once WSA is running."
+    }
 
     Write-Output "All Done!`r`nPress any key to exit"
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
